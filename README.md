@@ -48,5 +48,5 @@ Go to http://localhost:3000 (login: admin / admin)
 ## Deliverables
 
 - `Architecture_Diagram.png` - 6-layer Digital Twin architecture diagram
-- `A1_Technical_Summary.pdf` - Messaging protocol justification and system description
+- `Assignment1_Technical_Summary.pdf` - Messaging protocol justification and system description
 - Live Grafana dashboard with real-time sensor readings and 30 degrees C threshold alert
