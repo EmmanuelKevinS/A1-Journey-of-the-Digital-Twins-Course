@@ -1,0 +1,71 @@
+{
+  "room": {
+    "room_id": "sutd-lab-room-1",
+    "name": "SUTD Digital Twin Lab",
+    "type": "teaching_lab",
+    "area_sqm": 72,
+    "capacity_people": 12,
+    "description": "Virtual lab room used to demonstrate a connected digital twin and its live digital thread."
+  },
+  "zones": [
+    {
+      "zone_id": "north_bench",
+      "name": "North Workbench",
+      "purpose": "Equipment-intensive work area"
+    },
+    {
+      "zone_id": "central_room",
+      "name": "Central Collaboration Area",
+      "purpose": "Shared occupancy and movement area"
+    },
+    {
+      "zone_id": "south_wall",
+      "name": "South Wall",
+      "purpose": "Ambient environmental reference point"
+    }
+  ],
+  "thresholds": {
+    "temperature_high_c": 30.0,
+    "temperature_warm_c": 27.5,
+    "humidity_high_pct": 80.0,
+    "occupancy_high_people": 10
+  },
+  "sensors": [
+    {
+      "sensor_id": "TEMP-NB-01",
+      "sensor_type": "temperature",
+      "topic": "lab/sensors/temperature",
+      "zone_id": "north_bench",
+      "unit": "degC",
+      "position": {
+        "x": 0.22,
+        "y": 0.27
+      },
+      "description": "Temperature probe near heat-generating lab equipment"
+    },
+    {
+      "sensor_id": "HUM-SW-01",
+      "sensor_type": "humidity",
+      "topic": "lab/sensors/humidity",
+      "zone_id": "south_wall",
+      "unit": "%",
+      "position": {
+        "x": 0.78,
+        "y": 0.72
+      },
+      "description": "Humidity sensor on the lower wall away from equipment"
+    },
+    {
+      "sensor_id": "OCC-CR-01",
+      "sensor_type": "occupancy",
+      "topic": "lab/sensors/occupancy",
+      "zone_id": "central_room",
+      "unit": "people",
+      "position": {
+        "x": 0.50,
+        "y": 0.52
+      },
+      "description": "Occupancy counter covering the collaboration area"
+    }
+  ]
+}

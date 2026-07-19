@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SUTD Lab Room 3D Twin</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1120;
+      --panel: #111827;
+      --line: #334155;
+      --text: #e5edf7;
+      --muted: #94a3b8;
+      --temp: #ef4444;
+      --humid: #2563eb;
+      --occupancy: #22c55e;
+      --floor: #1e293b;
+      --wall: rgba(51, 65, 85, 0.72);
+      --desk: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 30% 15%, #1e293b 0, var(--bg) 48%, #020617 100%);
+      color: var(--text);
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+    }
+
+    .viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 360px;
+      padding: 16px 18px;
+    }
+
+    .header {
+      position: absolute;
+      z-index: 20;
+      left: 18px;
+      top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      pointer-events: none;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 26px);
+      line-height: 1.1;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 680px;
+      color: var(--muted);
+      font-size: clamp(12px, 1vw, 14px);
+    }
+
+    .legend {
+      position: absolute;
+      z-index: 20;
+      right: 18px;
+      top: 14px;
+      display: grid;
+      gap: 8px;
+      min-width: 210px;
+      padding: 10px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+    }
+
+    .legend-key {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 18px currentColor;
+    }
+
+    .temp { color: var(--temp); }
+    .humid { color: var(--humid); }
+    .occupancy { color: var(--occupancy); }
+
+    .scene-wrap {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      perspective: 1100px;
+      perspective-origin: 50% 44%;
+    }
+
+    .scene {
+      position: relative;
+      width: min(72vw, 960px);
+      height: min(54vh, 520px);
+      min-width: 560px;
+      min-height: 330px;
+      transform-style: preserve-3d;
+      transform: rotateX(62deg) rotateZ(-36deg);
+      transition: transform 180ms ease;
+      animation: breathe 5s ease-in-out infinite;
+    }
+
+    .room {
+      position: absolute;
+      inset: 9% 7% 11% 8%;
+      transform-style: preserve-3d;
+    }
+
+    .floor {
+      position: absolute;
+      inset: 0;
+      border: 2px solid #38bdf8;
+      border-radius: 12px;
+      background:
+        linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(15, 23, 42, 0.96));
+      background-size: 40px 40px, 40px 40px, auto;
+      box-shadow: 0 28px 80px rgba(2, 6, 23, 0.75), inset 0 0 40px rgba(56, 189, 248, 0.12);
+      transform: translateZ(0);
+    }
+
+    .wall {
+      position: absolute;
+      background: var(--wall);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      box-shadow: inset 0 0 28px rgba(56, 189, 248, 0.08);
+    }
+
+    .wall-north {
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 42px;
+      transform-origin: top;
+      transform: rotateX(88deg);
+    }
+
+    .wall-west {
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 42px;
+      transform-origin: left;
+      transform: rotateY(-88deg);
+    }
+
+    .zone {
+      position: absolute;
+      top: 20%;
+      bottom: 18%;
+      border: 1px solid rgba(226, 232, 240, 0.35);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: rgba(241, 245, 249, 0.92);
+      font-size: 20px;
+      font-weight: 800;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(2, 6, 23, 0.75);
+      transform: translateZ(2px);
+    }
+
+    .zone-north { left: 7%; width: 29%; background: rgba(250, 204, 21, 0.18); }
+    .zone-center { left: 38%; width: 24%; background: rgba(34, 197, 94, 0.16); }
+    .zone-south { right: 7%; width: 27%; background: rgba(248, 113, 113, 0.16); }
+
+    .desk {
+      position: absolute;
+      height: 18px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #64748b, var(--desk));
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
+      transform: translateZ(25px);
+    }
+
+    .desk-a { left: 11%; top: 72%; width: 25%; }
+    .desk-b { left: 40%; top: 72%; width: 20%; }
+    .desk-c { right: 11%; top: 72%; width: 24%; }
+
+    .sensor {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: 15px;
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 9px rgba(255, 255, 255, 0.04), 0 0 28px currentColor;
+      transform: translate(-50%, -50%) translateZ(60px) rotateZ(36deg) rotateX(-62deg);
+    }
+
+    .sensor::after {
+      content: attr(data-label);
+      position: absolute;
+      top: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 4px 7px;
+      border-radius: 6px;
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .sensor-temp {
+      left: 22%;
+      top: 27%;
+      background: var(--temp);
+      color: var(--temp);
+      animation: alertPulse 1.4s ease-in-out infinite;
+    }
+
+    .sensor-humid {
+      left: 78%;
+      top: 72%;
+      background: var(--humid);
+      color: var(--humid);
+    }
+
+    .sensor-occ {
+      left: 50%;
+      top: 64%;
+      background: var(--occupancy);
+      color: var(--occupancy);
+    }
+
+    .sensor span {
+      color: #fff;
+    }
+
+    .status-strip {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 14px;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: rgba(15, 23, 42, 0.82);
+    }
+
+    .metric b {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .metric span {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: rotateX(62deg) rotateZ(-36deg) translateY(0); }
+      50% { transform: rotateX(62deg) rotateZ(-36deg) translateY(-5px); }
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0.10), 0 0 28px rgba(239, 68, 68, 0.85); }
+      50% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0.02), 0 0 42px rgba(239, 68, 68, 1); }
+    }
+
+    @media (max-width: 760px) {
+      .legend {
+        display: none;
+      }
+
+      .scene {
+        width: 680px;
+        height: 360px;
+        min-width: 680px;
+      }
+
+      .status-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="viewport" aria-label="3D model of the SUTD lab room digital twin">
+    <section class="header">
+      <h1 class="title">SUTD Lab Room 3D Twin</h1>
+      <p class="subtitle">Virtual room layout with sensor placement, zones, and the temperature alert path.</p>
+    </section>
+
+    <aside class="legend" aria-label="Sensor legend">
+      <div class="legend-row"><span class="legend-key"><span class="dot temp"></span>Temperature</span><span>TEMP-NB-01</span></div>
+      <div class="legend-row"><span class="legend-key"><span class="dot humid"></span>Humidity</span><span>HUM-SW-01</span></div>
+      <div class="legend-row"><span class="legend-key"><span class="dot occupancy"></span>Occupancy</span><span>OCC-CR-01</span></div>
+    </aside>
+
+    <section class="scene-wrap">
+      <div class="scene" id="scene">
+        <div class="room">
+          <div class="floor"></div>
+          <div class="wall wall-north"></div>
+          <div class="wall wall-west"></div>
+          <div class="zone zone-north">North<br>Workbench</div>
+          <div class="zone zone-center">Central<br>Area</div>
+          <div class="zone zone-south">South<br>Wall</div>
+          <div class="desk desk-a"></div>
+          <div class="desk desk-b"></div>
+          <div class="desk desk-c"></div>
+          <div class="sensor sensor-temp" data-label="TEMP-NB-01"><span>T</span></div>
+          <div class="sensor sensor-humid" data-label="HUM-SW-01"><span>H</span></div>
+          <div class="sensor sensor-occ" data-label="OCC-CR-01"><span>O</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-strip" aria-label="Digital twin model metadata">
+      <div class="metric"><b>Room</b><span>SUTD Digital Twin Lab</span></div>
+      <div class="metric"><b>Capacity</b><span>12 people</span></div>
+      <div class="metric"><b>Alert Threshold</b><span>30 degC</span></div>
+      <div class="metric"><b>Data Thread</b><span>MQTT -> InfluxDB -> Grafana</span></div>
+    </section>
+  </main>
+  <script>
+    const scene = document.getElementById("scene");
+    let baseX = 62;
+    let baseZ = -36;
+
+    window.addEventListener("pointermove", (event) => {
+      const x = (event.clientX / Math.max(window.innerWidth, 1) - 0.5) * 8;
+      const y = (event.clientY / Math.max(window.innerHeight, 1) - 0.5) * -5;
+      scene.style.transform = `rotateX(${baseX + y}deg) rotateZ(${baseZ + x}deg)`;
+    });
+
+    window.addEventListener("pointerleave", () => {
+      scene.style.transform = `rotateX(${baseX}deg) rotateZ(${baseZ}deg)`;
+    });
+  </script>
+</body>
+</html>
